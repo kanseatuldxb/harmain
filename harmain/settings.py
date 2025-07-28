@@ -41,6 +41,7 @@ MQTT_TOPIC_PREFIX = '#'
 
 INSTALLED_APPS = [
     'baton',
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -48,9 +49,11 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'auditlog', 
+    'rest_framework',
     'django_filters',
     'import_export',
     'dmqtt',
+    'channels',
     'smartlift',
     'baton.autodiscover',
 ]
@@ -64,6 +67,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
+}
 
 ROOT_URLCONF = 'harmain.urls'
 
@@ -83,6 +90,23 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'harmain.wsgi.application'
+ASGI_APPLICATION = 'harmain.asgi.application' 
+
+# (Optional) Channel layer backend (for multi-instance or production use):
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     }
+# }
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [('127.0.0.1', 6379)],
+        },
+    },
+}
 
 
 # Database

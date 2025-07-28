@@ -1,4 +1,7 @@
 from dmqtt.signals import connect, regex, topic,message
+
+from django.db.models.signals import post_save
+
 from django.dispatch import receiver
 from smartlift.models import LiftEnvironmentLog
 from smartlift.models import LiftControlLog
@@ -6,8 +9,12 @@ from smartlift.models import LiftDoorEventLog
 from smartlift.models import LiftOccupancyLog
 from smartlift.models import EnergyMeterLog
 from smartlift.models import LiftFloorEventLog
-
 import json
+
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
+
 
 @receiver(connect)
 def on_connect(sender, **kwargs):
@@ -29,6 +36,23 @@ Kp = 1       # Power scaling
 Ki = 1       # Current scaling
 Kvp = 0.1    # Voltage scaling (e.g., 2245 = 224.5V)
 
+@receiver(post_save, sender=LiftEnvironmentLog)
+def send_lift_env_log_ws(sender, instance, created, **kwargs):
+    print("sad  ------------------------------------------")
+    if created:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "lift_logs",
+            {
+                "type": "send_lift_log",
+                "data": {
+                    "device": instance.device_name,
+                    "temperature": str(instance.temperature),
+                    "humidity": str(instance.humidity),
+                    "time": str(instance.gateway_time),
+                },
+            },
+        )
 
 @topic("lift1\\uplink")
 def simple_topic(sender, topic, data, **kwargs):
@@ -47,6 +71,7 @@ def simple_topic(sender, topic, data, **kwargs):
                 temperature=data.get("temperature"),
                 raw_payload=data
             )
+            
             print(f"✅ {log.gateway_time} | {log.device_name} | Temp: {log.temperature}°C | Hum: {log.humidity}%")
         except Exception as e:
             print(f"❌ Error saving data: {e}")
